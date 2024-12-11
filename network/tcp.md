@@ -121,13 +121,23 @@
 
 ### TCP 拥塞控制算法
    - 组成: 慢启动, 避免拥塞, 快速恢复(可选).
+   - 起始: 以`1 MSS`速度启动.
    - 慢启动
-      - 增加: 以`1 MSS`速度启动, 2的指数速度增加.
+      - 增加: `cwnd += MSS`
       - 结束
-         1. 超时. 设置`cwnd = 1`, 慢启动阈值`ssthresh = cwnd / 2`.
-         2. 达到阈值: 速率增大到`ssthresh`时, 慢启动 -> 避免拥塞.
-         3. 三个ACK: 慢启动 -> 快速重传 or 快速恢复.
+         1. 达到阈值: 速率增大到`ssthresh`时, -> 避免拥塞.
+         2. 超时: 设置`cwnd = 1`, 阈值`ssthresh = cwnd / 2`.
+         3. 丢包: 阈值`ssthresh = cwnd / 2`, 设置`cwnd = ssthresh + 3MSS`. -> 快速重传.
    - 避免拥塞
-      - 增加: `cwnd`对每个RTT的一组ACK增加`1 MSS`.
-      - 结束: 丢包(超时或三个ACK)则回到`cwnd = 1`, 设置慢启动阈值`ssthresh = cwnd / 2`.
+      - 增加: `cwnd += MSS * (MSS / cwnd)`.
+      - 结束:
+         1. 超时: 设置`cwnd = 1`, 阈值`ssthresh = cwnd / 2`. -> 慢启动.
+         2. 丢包: 阈值`ssthresh = cwnd / 2`, 设置`cwnd = ssthresh + 3MSS`. -> 快速恢复.
+   - 快速恢复
+      - 正常回复: `cwnd = ssthresh`, -> 避免拥塞.
+      - 重复ACK: `cwnd += MSS`.
+      - 超时: 设置`cwnd = 1`, 阈值`ssthresh = cwnd / 2`. -> 慢启动.
    ![TCP拥塞控制](pic/TCP-congestion-control.png)
+
+### AIMD
+   - 加性增, 乘性减: 没有拥塞时发送窗口的增加是线性的, 出现拥塞后发送窗口减少到原来的一半.
